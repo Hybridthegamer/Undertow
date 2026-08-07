@@ -1229,10 +1229,11 @@
     "declaredTotal": 12,
     "declaredTier": "high",
     "featureTriggers": [
+      "autonomous",
+      "custom-math",
+      "price-impact",
+      "return-delta",
       "dynamic-lp-fee",
-      "per-swap-fee-override",
-      "beforeSwapReturnDelta",
-      "afterSwapReturnDelta",
       "time-or-block-condition"
     ]
   },

@@ -1,7 +1,7 @@
 {
   "reportVersion": 2,
   "standardVersion": "1.3.0",
-  "submissionHash": "sha256:7a30d52b5ed87deed2367c85879ca69d970fd3b1c8177e3a7ab96a2086e5903c",
+  "submissionHash": "sha256:e8163418e2432752ea587a250d30f867af65594008c379c17489ac2d5a9a4aba",
   "toolchain": {
     "validatorSha256": "sha256:d3b4db147fbb955d0ecdff0d5d3a55d25a55a38bb72b33efe535d9c80c286318",
     "schemaSha256": "sha256:b3a67753b286a35a49d88a85e1bdaec50f19d86b241145901e2dd24327fd515a",
@@ -358,34 +358,6 @@
       "path": "$.hook.customAccounting",
       "message": "A return-delta permission is enabled without an explicit custom-accounting model.",
       "remediation": "Define backing, conservation, settlement, caller deltas and partial-fill or liquidity-minimum behavior for that permission."
-    },
-    {
-      "severity": "blocker",
-      "code": "RISK_TRIGGER_MISSING",
-      "path": "$.risk.featureTriggers",
-      "message": "Derived feature trigger autonomous is not declared.",
-      "remediation": "Add the trigger and its capability-specific security work."
-    },
-    {
-      "severity": "blocker",
-      "code": "RISK_TRIGGER_MISSING",
-      "path": "$.risk.featureTriggers",
-      "message": "Derived feature trigger custom-math is not declared.",
-      "remediation": "Add the trigger and its capability-specific security work."
-    },
-    {
-      "severity": "blocker",
-      "code": "RISK_TRIGGER_MISSING",
-      "path": "$.risk.featureTriggers",
-      "message": "Derived feature trigger price-impact is not declared.",
-      "remediation": "Add the trigger and its capability-specific security work."
-    },
-    {
-      "severity": "blocker",
-      "code": "RISK_TRIGGER_MISSING",
-      "path": "$.risk.featureTriggers",
-      "message": "Derived feature trigger return-delta is not declared.",
-      "remediation": "Add the trigger and its capability-specific security work."
     },
     {
       "severity": "blocker",
