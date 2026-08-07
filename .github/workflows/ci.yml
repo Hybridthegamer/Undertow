@@ -19,7 +19,7 @@ jobs:
           version: stable
 
       - name: Restore pinned dependencies
-        run: ./script/bootstrap.sh
+        run: bash ./script/bootstrap.sh
 
       - name: Show versions
         run: forge --version
