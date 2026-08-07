@@ -1,0 +1,1245 @@
+{
+  "$schema": "urn:programmable:v4-hook-submission:1.3.0",
+  "schemaVersion": 1,
+  "standardVersion": "1.3.0",
+  "stage": "proposal",
+  "model": {
+    "id": "undertow",
+    "name": "Undertow",
+    "summary": "Undertow is a Uniswap v4 launch pool that recaptures loss-versus-rebalancing (LVR) for its own liquidity providers by pricing pool staleness into a dynamic LP fee, oracle-free and keeper-free, while enforcing the mandatory Programmable 10 bps volume fee non-bypassably.",
+    "userOutcome": "Liquidity providers earn back value that would otherwise leak to arbitrageurs: the first swap after a quiet gap (the arbitrage that realigns price) pays a higher LP fee that the v4 core routes to in-range LPs; ordinary flow pays the base fee. Traders and issuers get a normal single-canonical-pool market with transparent, bounded fees.",
+    "category": "other",
+    "whyV4": "Only a v4 hook can (a) return a per-swap dynamic LP-fee override computed from on-chain staleness with no oracle or keeper, and (b) collect the mandatory 10 bps on the quote side via quadrant-dependent before/after return deltas atomically within the same swap. Neither is expressible as a router charge, a static LP fee, or a token transfer tax."
+  },
+  "builder": {
+    "github": "Hybridthegamer",
+    "contact": "https://github.com/Hybridthegamer",
+    "beneficiary": null,
+    "licenseDeclaration": "MIT; builder authored all model source and holds the right to submit it."
+  },
+  "publicMetadata": {
+    "project": {
+      "name": "Undertow",
+      "description": "A Uniswap v4 launch model that recaptures loss-versus-rebalancing for the pool's own LPs via an oracle-free, staleness-priced dynamic LP fee.",
+      "projectUri": "https://github.com/Hybridthegamer/Undertow",
+      "logoUri": null,
+      "logoContentHash": null,
+      "metadataMutable": false,
+      "metadataOwner": null
+    },
+    "token": {
+      "name": "Undertow",
+      "symbol": "TOW",
+      "metadataUri": null,
+      "metadataContentHash": null,
+      "logoUri": null,
+      "logoContentHash": null,
+      "metadataMutable": false,
+      "metadataOwner": null
+    },
+    "claimedAffiliations": [],
+    "providerPresentations": []
+  },
+  "target": {
+    "chainId": 1,
+    "network": "ethereum",
+    "solidityVersion": "0.8.26",
+    "evmVersion": "cancun",
+    "dependencyBaseline": "programmable-tested",
+    "officialLaunchProfileId": null
+  },
+  "assets": [
+    {
+      "id": "eth",
+      "role": "quote",
+      "origin": "native-eth",
+      "address": null,
+      "decimals": 18,
+      "decimalsSource": "native-eth-protocol",
+      "supplyPolicy": "native",
+      "initialSupply": null,
+      "behaviors": [
+        "standard"
+      ],
+      "controls": []
+    },
+    {
+      "id": "launched-token",
+      "role": "launched",
+      "origin": "new-fixed-supply",
+      "address": null,
+      "decimals": 18,
+      "decimalsSource": "implementation-constant",
+      "supplyPolicy": "fixed-at-creation",
+      "initialSupply": "1000000000000000000000000000",
+      "behaviors": [
+        "standard"
+      ],
+      "controls": []
+    }
+  ],
+  "launchLifecycle": {
+    "tokenCreation": {
+      "applicable": true,
+      "actor": "Programmable launch flow via the official UERC20 factory",
+      "valueFlow": "Fixed 1,000,000,000 supply minted once to the launch flow; no further minting.",
+      "custody": "No party retains mint, pause, freeze, or blacklist authority.",
+      "failure": "Creation reverts atomically on any factory or parameter error.",
+      "event": "UERC20 factory creation event",
+      "notApplicableReason": null
+    },
+    "poolInitialization": {
+      "applicable": true,
+      "actor": "Launch flow initializes one canonical dynamic-fee PoolKey",
+      "valueFlow": "No value moves at initialization.",
+      "custody": "Hook binds the pool one-shot in afterInitialize.",
+      "failure": "Reverts if the pool is not dynamic-fee or lacks the quote asset (NotDynamicFee / NotQuotePool).",
+      "event": "PoolBound(poolId, quote)",
+      "notApplicableReason": null
+    },
+    "liquidityFormation": {
+      "applicable": true,
+      "actor": "Launch flow adds the full allocation as one permanently locked position",
+      "valueFlow": "Entire launch allocation enters one one-sided, permanently locked v4 position.",
+      "custody": "Position custody is permanent per the Programmable launch standard.",
+      "failure": "Reverts atomically if the liquidity add fails.",
+      "event": "PoolManager ModifyLiquidity event",
+      "notApplicableReason": null
+    },
+    "initialTransaction": {
+      "applicable": true,
+      "actor": "Creator initial buy routed through the canonical pool",
+      "valueFlow": "Creator's initial ETH buy executes through the hooked pool and pays the mandatory fee like any swap.",
+      "custody": "The initial buy tokens follow the Programmable launch custody policy; the hook itself custodies nothing from this transaction beyond the 10 bps platform liability.",
+      "failure": "Reverts atomically with the launch transaction.",
+      "event": "PoolManager Swap on the canonical PoolKey, plus Undertow LvrSurcharge and ProgrammableFeeCollected events for the initial buy",
+      "notApplicableReason": null
+    },
+    "trading": {
+      "applicable": true,
+      "actor": "Any trader swaps on the canonical pool",
+      "valueFlow": "Each swap pays base LP fee + LVR surcharge (to in-range LPs via core) and the 10 bps platform fee (owner liability).",
+      "custody": "Hook holds only the owner-claimable platform liability as ERC-6909 quote claims.",
+      "failure": "A swap reverts atomically on any settlement or bound violation; the fee is never partially applied.",
+      "event": "LvrSurcharge and ProgrammableFeeCollected",
+      "notApplicableReason": null
+    },
+    "feesAndClaims": {
+      "applicable": true,
+      "actor": "Programmable owner claims the accrued platform liability",
+      "valueFlow": "10 bps accrues per pool as an owner-only claimable liability; the LVR surcharge is an LP fee, never part of this liability.",
+      "custody": "Only 0x4957...376c may claim, to itself or a per-claim destination.",
+      "failure": "Claim of zero returns zero; no other party can claim, redirect, or reduce the liability.",
+      "event": "ProgrammableFeeClaimed(poolId, quote, to, amount)",
+      "notApplicableReason": null
+    },
+    "dependencyFailure": {
+      "applicable": true,
+      "actor": "PoolManager is the only trusted dependency",
+      "valueFlow": "No external protocol, oracle, or keeper is used.",
+      "custody": "If a swap sub-call reverts, the whole swap reverts atomically; no funds are trapped.",
+      "failure": "The hook has no external dependency that can pause, upgrade, or depeg it.",
+      "event": "n/a (revert)",
+      "notApplicableReason": null
+    },
+    "retirement": {
+      "applicable": false,
+      "actor": null,
+      "valueFlow": null,
+      "custody": null,
+      "failure": null,
+      "event": null,
+      "notApplicableReason": "The launch position is permanently locked and the hook is immutable; there is no retirement path."
+    }
+  },
+  "pool": {
+    "currency0": "eth",
+    "currency1": "launched-token",
+    "orderingRule": "Native ETH is currency0 and the launched token is currency1.",
+    "tickSpacing": 60,
+    "lpFee": {
+      "classification": "lp-fee",
+      "mode": "dynamic",
+      "hundredthsOfBip": null,
+      "initialHundredthsOfBip": 3000,
+      "initializationPath": null,
+      "applicationMode": "before-swap-override",
+      "overrideFlagPolicy": null,
+      "persistentUpdateActor": null,
+      "persistentUpdateCallSites": [],
+      "rateLimit": null,
+      "updatePath": null,
+      "minimum": 3000,
+      "maximum": 53000,
+      "inputMetric": null,
+      "referenceAsset": null,
+      "measurementUnit": "hundredths-of-bip",
+      "observationMode": "instantaneous",
+      "observationWindow": null,
+      "curve": null,
+      "updateCadence": null,
+      "liquidityDecreaseBehavior": null,
+      "manipulationResistance": "Surcharge is a pure function of prior-block state (elapsed blocks); a swap cannot lower its own surcharge, and sub-threshold dust swaps do not reset the staleness clock.",
+      "failureRule": "Bounded to [3000, 53000] hundredths-of-bip; never approaches the core maximum.",
+      "recipient": "pool-liquidity-providers"
+    },
+    "canonical": true,
+    "alternativePools": "Alternative pools may exist and do not inherit this model's behavior."
+  },
+  "programmableFee": {
+    "policyId": "programmable-volume-fee-v1",
+    "policyVersion": "1.0.0",
+    "poolScope": "canonical-launch-pool-key",
+    "rates": {
+      "unit": "hundredths-of-bip",
+      "selectedHundredthsOfBip": 1000,
+      "minimumEffectiveHundredthsOfBip": 1000,
+      "effectiveHundredthsOfBip": 1000,
+      "platformHundredthsOfBip": 1000,
+      "projectHundredthsOfBip": 0,
+      "formula": "effective=max(selected,1000);platform=1000;project=effective-1000",
+      "lpFeeExcluded": true
+    },
+    "basis": {
+      "volume": "gross-quote-side-swap-volume",
+      "quoteAsset": "canonical-pool-quote-asset"
+    },
+    "ownership": {
+      "owner": "0x4957f49620AFf3Adbbe8195a4f633E49cc93376c",
+      "immutable": true,
+      "claimAuthority": "owner-only",
+      "claimAvailability": "anytime",
+      "claimDestinationPolicy": "owner-or-owner-selected-per-claim",
+      "storedMutableRecipient": false,
+      "builderCanMutate": false,
+      "projectCanMutate": false,
+      "administratorCanMutate": false
+    },
+    "collection": {
+      "status": "implemented",
+      "integration": "canonical-pool-hook",
+      "enforcement": "non-bypassable",
+      "hookFeeMechanismBinding": "hook.feeMechanism",
+      "supportedSwapModes": [
+        "zeroForOne-exactInput",
+        "zeroForOne-exactOutput",
+        "oneForZero-exactInput",
+        "oneForZero-exactOutput"
+      ],
+      "swapModePaths": {
+        "zeroForOneExactInput": "before-swap-return-delta",
+        "zeroForOneExactOutput": "after-swap-return-delta",
+        "oneForZeroExactInput": "after-swap-return-delta",
+        "oneForZeroExactOutput": "before-swap-return-delta"
+      },
+      "selfCallPolicy": "same-pool-swap-forbidden"
+    },
+    "accounting": {
+      "accrualMode": "claimable-liability",
+      "liabilityKeyDimensions": [
+        "poolId",
+        "currency",
+        "owner"
+      ],
+      "crossPoolNetting": false,
+      "valueFlowId": "programmable-fee",
+      "collectionEvent": "ProgrammableFeeCollected(poolId, quote, platform)",
+      "claimEvent": "ProgrammableFeeClaimed(poolId, quote, to, amount)"
+    },
+    "evidence": {
+      "sourcePaths": [
+        "src/Undertow.sol"
+      ],
+      "testPaths": [
+        "test/LvrRecaptureHook.t.sol",
+        "test/LvrInvariant.t.sol",
+        "test/LvrFork.t.sol"
+      ]
+    }
+  },
+  "hook": {
+    "used": true,
+    "base": "@uniswap/v4-periphery/src/utils/BaseHook.sol",
+    "upgradeable": false,
+    "sharedAcrossPools": false,
+    "poolNamespace": "All state is keyed by PoolId; one hook instance serves one canonical pool per launch.",
+    "poolAdmission": {
+      "enforcement": "one-shot-afterInitialize-binding",
+      "factoryOrRegistry": "The Programmable launch flow deploys the hook and initializes the canonical PoolKey.",
+      "alternativePoolBehavior": "An alternative pool with the same hook binds its own PoolId state independently and does not inherit or contaminate the canonical pool; the canonical pool is proven by the launcher event and exact PoolKey.",
+      "rejectionRule": "afterInitialize reverts on a non-dynamic-fee pool, a pool without the quote asset, or a re-bind (AlreadyBound)."
+    },
+    "permissions": {
+      "beforeInitialize": false,
+      "afterInitialize": true,
+      "beforeAddLiquidity": false,
+      "afterAddLiquidity": false,
+      "beforeRemoveLiquidity": false,
+      "afterRemoveLiquidity": false,
+      "beforeSwap": true,
+      "afterSwap": true,
+      "beforeDonate": false,
+      "afterDonate": false,
+      "beforeSwapReturnDelta": true,
+      "afterSwapReturnDelta": true,
+      "afterAddLiquidityReturnDelta": false,
+      "afterRemoveLiquidityReturnDelta": false
+    },
+    "callbackPolicies": [],
+    "hookData": {
+      "used": false,
+      "schema": null,
+      "identitySource": null,
+      "trustedRouterDeploymentRecordId": null,
+      "callbackSenderRule": "pool-manager-callback-only",
+      "validation": null
+    },
+    "feeMechanism": {
+      "used": true,
+      "classification": "hook-owned-fee",
+      "chargedCurrency": "canonical-pool-quote-asset",
+      "swapQuadrants": {
+        "zeroForOneExactInput": {
+          "currency": "currency0",
+          "basis": "gross-input",
+          "formula": "ceil(grossQuote * 1000 / 1000000)",
+          "rounding": "up",
+          "maximumHundredthsOfBip": 1000
+        },
+        "zeroForOneExactOutput": {
+          "currency": "currency0",
+          "basis": "unspecified-amount",
+          "formula": "ceil(grossQuote * 1000 / 1000000)",
+          "rounding": "up",
+          "maximumHundredthsOfBip": 1000
+        },
+        "oneForZeroExactInput": {
+          "currency": "currency0",
+          "basis": "unspecified-amount",
+          "formula": "ceil(grossQuote * 1000 / 1000000)",
+          "rounding": "up",
+          "maximumHundredthsOfBip": 1000
+        },
+        "oneForZeroExactOutput": {
+          "currency": "currency0",
+          "basis": "gross-output",
+          "formula": "ceil(grossQuote * 1000 / 1000000)",
+          "rounding": "up",
+          "maximumHundredthsOfBip": 1000
+        }
+      },
+      "maximumHundredthsOfBip": 1000,
+      "collectionPath": "quadrant-dependent-swap-return-delta",
+      "collectionValueFlowId": "programmable-fee",
+      "liabilityKeyDimensions": [
+        "poolId",
+        "currency",
+        "beneficiary"
+      ],
+      "collectionEvent": "ProgrammableFeeCollected",
+      "recipients": [
+        {
+          "role": "programmable-platform",
+          "sharePpm": 1000000,
+          "addressSource": "fixed-address",
+          "address": "0x4957f49620AFf3Adbbe8195a4f633E49cc93376c",
+          "binding": "exact-address",
+          "derivationRule": null,
+          "mutable": false,
+          "mutationController": "none",
+          "newAddressValidation": "none",
+          "mutationEvent": null
+        }
+      ],
+      "ownership": "immutable-owner",
+      "claimPolicy": "owner-only-to-self-or-selected-destination"
+    },
+    "customAccounting": {
+      "used": false,
+      "backingSource": null,
+      "conservationEquation": null,
+      "settlement": null,
+      "partialFillBehavior": null,
+      "liabilityNamespace": null,
+      "liabilityKeyDimensions": [],
+      "crossPoolNetting": false,
+      "duplicateCurrencyPolicy": null,
+      "failureIsolation": null,
+      "withdrawalOrdering": null
+    },
+    "returnDeltaAccounting": {
+      "used": true,
+      "quadrants": {
+        "zeroForOneExactInput": {
+          "supported": true,
+          "specifiedCurrency": "currency0",
+          "unspecifiedCurrency": "currency1",
+          "amountSign": "negative-exact-input",
+          "specifiedComponent": {
+            "mode": "positive-only",
+            "formula": "ceil(grossQuote * 1000 / 1000000)",
+            "minimum": "0",
+            "maximum": null,
+            "minimumSign": "zero",
+            "maximumSign": "positive",
+            "positiveSettlementActions": [
+              {
+                "order": 0,
+                "actor": "hook",
+                "operation": "take",
+                "currency": "specified",
+                "assetKind": "native",
+                "deltaOwner": "hook",
+                "deltaEffect": "positive",
+                "counterparty": "PoolManager",
+                "authorizationRule": null,
+                "msgValueRule": null,
+                "amountRule": "ceil(grossQuote * 1000 / 1000000)  (10 bps of the specified quote amount)",
+                "completionDeadline": "before-hook-return"
+              }
+            ],
+            "negativeSettlementActions": []
+          },
+          "unspecifiedComponent": null,
+          "residualAmmEquation": "amountSpecified-plus-specifiedDelta",
+          "finalCallerDeltaEquation": "pool-manager-swap-delta-minus-hook-delta",
+          "specifiedDeltaCanConsumeEntireAmount": false,
+          "rounding": "up",
+          "zeroAmmLeg": "forbidden",
+          "partialFillRule": "before-quadrant basis is |amountSpecified| (quote is specified and known pre-swap)",
+          "slippageInvariant": "fee is additive and bounded; cannot flip the caller-delta sign",
+          "failureRule": "revert the whole swap on any settlement failure"
+        },
+        "zeroForOneExactOutput": {
+          "supported": false,
+          "specifiedCurrency": "currency1",
+          "unspecifiedCurrency": "currency0",
+          "amountSign": "positive-exact-output",
+          "specifiedComponent": {
+            "mode": "zero-only",
+            "formula": "0",
+            "minimum": "0",
+            "maximum": "0",
+            "minimumSign": "zero",
+            "maximumSign": "zero",
+            "positiveSettlementActions": [],
+            "negativeSettlementActions": []
+          },
+          "unspecifiedComponent": null,
+          "residualAmmEquation": "amountSpecified-plus-specifiedDelta",
+          "finalCallerDeltaEquation": "pool-manager-swap-delta-minus-hook-delta",
+          "specifiedDeltaCanConsumeEntireAmount": false,
+          "rounding": "up",
+          "zeroAmmLeg": "forbidden",
+          "partialFillRule": "before-quadrant basis is |amountSpecified| (quote is specified and known pre-swap)",
+          "slippageInvariant": "fee is additive and bounded; cannot flip the caller-delta sign",
+          "failureRule": "revert the whole swap on any settlement failure"
+        },
+        "oneForZeroExactInput": {
+          "supported": false,
+          "specifiedCurrency": "currency1",
+          "unspecifiedCurrency": "currency0",
+          "amountSign": "negative-exact-input",
+          "specifiedComponent": {
+            "mode": "zero-only",
+            "formula": "0",
+            "minimum": "0",
+            "maximum": "0",
+            "minimumSign": "zero",
+            "maximumSign": "zero",
+            "positiveSettlementActions": [],
+            "negativeSettlementActions": []
+          },
+          "unspecifiedComponent": null,
+          "residualAmmEquation": "amountSpecified-plus-specifiedDelta",
+          "finalCallerDeltaEquation": "pool-manager-swap-delta-minus-hook-delta",
+          "specifiedDeltaCanConsumeEntireAmount": false,
+          "rounding": "up",
+          "zeroAmmLeg": "forbidden",
+          "partialFillRule": "before-quadrant basis is |amountSpecified| (quote is specified and known pre-swap)",
+          "slippageInvariant": "fee is additive and bounded; cannot flip the caller-delta sign",
+          "failureRule": "revert the whole swap on any settlement failure"
+        },
+        "oneForZeroExactOutput": {
+          "supported": true,
+          "specifiedCurrency": "currency0",
+          "unspecifiedCurrency": "currency1",
+          "amountSign": "positive-exact-output",
+          "specifiedComponent": {
+            "mode": "positive-only",
+            "formula": "ceil(grossQuote * 1000 / 1000000)",
+            "minimum": "0",
+            "maximum": null,
+            "minimumSign": "zero",
+            "maximumSign": "positive",
+            "positiveSettlementActions": [
+              {
+                "order": 0,
+                "actor": "hook",
+                "operation": "take",
+                "currency": "specified",
+                "assetKind": "native",
+                "deltaOwner": "hook",
+                "deltaEffect": "positive",
+                "counterparty": "PoolManager",
+                "authorizationRule": null,
+                "msgValueRule": null,
+                "amountRule": "ceil(grossQuote * 1000 / 1000000)  (10 bps of the specified quote amount)",
+                "completionDeadline": "before-hook-return"
+              }
+            ],
+            "negativeSettlementActions": []
+          },
+          "unspecifiedComponent": null,
+          "residualAmmEquation": "amountSpecified-plus-specifiedDelta",
+          "finalCallerDeltaEquation": "pool-manager-swap-delta-minus-hook-delta",
+          "specifiedDeltaCanConsumeEntireAmount": false,
+          "rounding": "up",
+          "zeroAmmLeg": "forbidden",
+          "partialFillRule": "before-quadrant basis is |amountSpecified| (quote is specified and known pre-swap)",
+          "slippageInvariant": "fee is additive and bounded; cannot flip the caller-delta sign",
+          "failureRule": "revert the whole swap on any settlement failure"
+        }
+      },
+      "executionEvent": "ProgrammableFeeCollected"
+    },
+    "postReturnDeltaAccounting": {
+      "afterSwap": {
+        "used": true,
+        "returnedDeltaShape": "unspecified-currency-int128",
+        "positiveMeaning": "hook-credit-caller-debit",
+        "negativeMeaning": null,
+        "backingSource": "ERC-6909 quote claims taken from the PoolManager in the same unlock",
+        "callerDeltaEquation": "protocol-delta-minus-hook-delta",
+        "componentPolicies": {
+          "unspecified": null,
+          "currency0": null,
+          "currency1": null
+        },
+        "bounds": "exactly 10 bps (ceil) of the executed quote amount",
+        "rounding": "up",
+        "slippageOrMinimums": "additive and bounded",
+        "failureRule": "revert the whole swap",
+        "executionEvent": "ProgrammableFeeCollected"
+      },
+      "afterAddLiquidity": {
+        "used": false,
+        "returnedDeltaShape": null,
+        "positiveMeaning": null,
+        "negativeMeaning": null,
+        "backingSource": null,
+        "callerDeltaEquation": null,
+        "componentPolicies": {
+          "unspecified": null,
+          "currency0": null,
+          "currency1": null
+        },
+        "bounds": null,
+        "rounding": null,
+        "slippageOrMinimums": null,
+        "failureRule": null,
+        "executionEvent": null
+      },
+      "afterRemoveLiquidity": {
+        "used": false,
+        "returnedDeltaShape": null,
+        "positiveMeaning": null,
+        "negativeMeaning": null,
+        "backingSource": null,
+        "callerDeltaEquation": null,
+        "componentPolicies": {
+          "unspecified": null,
+          "currency0": null,
+          "currency1": null
+        },
+        "bounds": null,
+        "rounding": null,
+        "slippageOrMinimums": null,
+        "failureRule": null,
+        "executionEvent": null
+      }
+    },
+    "erc6909Claims": {
+      "used": true,
+      "currencyIdDerivation": "currency-address-uint160",
+      "claimBalanceScope": "claim-owner-and-currency",
+      "poolIdIncludedInClaimId": false,
+      "owner": "the hook contract",
+      "operatorPolicy": "no operators approved",
+      "mintFlow": "Currency.take(..., mint=true) on fee collection",
+      "burnFlow": "PoolManager.transfer moves claims to the owner's chosen destination on claim",
+      "takeSettleFlow": "take on collect; transfer on claim",
+      "liabilityKeys": "(poolId, quote, beneficiary)",
+      "liabilityKeyDimensions": [
+        "poolId",
+        "currency",
+        "beneficiary"
+      ],
+      "crossPoolNetting": false,
+      "transferPolicy": "only claimProgrammableFee (owner-only) moves claims out",
+      "redemption": "owner redeems the ERC-6909 claims at the PoolManager",
+      "roundingDust": "ceil rounding favors the liability; the hook is always solvent (proven by invariant)",
+      "aggregateSolvencyEquation": "manager.balanceOf(hook, quoteId) == sum over pools of programmableFeeOwed"
+    },
+    "nestedActions": {
+      "used": false,
+      "directPoolManagerCalls": false,
+      "routerCalls": false,
+      "allowedActions": [],
+      "samePoolPolicy": "the hook never initiates a same-pool swap (selfCallPolicy: same-pool-swap-forbidden)",
+      "crossPoolPolicy": "none",
+      "callbackSuppression": null,
+      "directCallbackBehavior": null,
+      "routerCallbackBehavior": null,
+      "maximumDepth": null,
+      "stateCommitOrder": null,
+      "transientDeltaOwner": null,
+      "syncInterleaving": null,
+      "slippageAggregation": null,
+      "failureAtomicity": "any failure reverts the whole swap"
+    }
+  },
+  "noHookArchitecture": null,
+  "valueFlows": [
+    {
+      "id": "programmable-fee",
+      "action": "fee",
+      "asset": "canonical-pool-quote-asset",
+      "from": "swapper",
+      "to": "0x4957f49620AFf3Adbbe8195a4f633E49cc93376c (owner-claimable liability)",
+      "amountRule": "exactly 10 bps (1000 hundredths-of-bip) of executed gross quote-side volume, ceil-rounded",
+      "settlement": "taken as ERC-6909 quote claims in the same unlock; owner claims to a chosen destination",
+      "failure": "revert the whole swap"
+    },
+    {
+      "id": "lvr-surcharge",
+      "action": "fee",
+      "asset": "canonical-pool-lp-fee",
+      "from": "swapper",
+      "to": "in-range liquidity providers (via v4 core fee growth)",
+      "amountRule": "dynamic LP fee = base 3000 + min(50000, 500 * staleBlocks) hundredths-of-bip",
+      "settlement": "charged by the v4 core as the pool LP fee; distributed to in-range LPs by fee-growth accounting",
+      "failure": "bounded to [3000, 53000]; revert on core failure"
+    }
+  ],
+  "authorities": [
+    {
+      "role": "programmable-fee-owner",
+      "controller": "0x4957f49620AFf3Adbbe8195a4f633E49cc93376c",
+      "capabilities": [
+        "claim the accrued 10 bps platform liability for a pool to self or a per-claim destination"
+      ],
+      "mutable": false,
+      "delay": "none",
+      "userExitImpact": "None: the owner cannot touch LP funds, the LVR surcharge, or trader funds; no pause/upgrade/sweep exists and swaps and LP exits are never blocked."
+    }
+  ],
+  "dependencies": {
+    "onchain": [
+      {
+        "id": "uniswap-v4-pool-manager",
+        "name": "Uniswap v4 PoolManager",
+        "kind": "protocol",
+        "repository": "https://github.com/Uniswap/v4-core.git",
+        "revision": "59d3ecf53afa9264a16bba0e38f4c5d2231f80bc",
+        "packageVersion": null,
+        "license": "BUSL-1.1",
+        "sourceProvenance": "pinned-source",
+        "deploymentRecordId": "ethereum-mainnet-pool-manager",
+        "chainAddress": "0x000000000004444c5dc75cB358380D2e3dE08A90",
+        "runtimeHash": null,
+        "deploymentEvidencePath": "test/LvrFork.t.sol",
+        "trust": "runtime-unverified-reference",
+        "failure": "if a PoolManager sub-call reverts, the whole swap reverts atomically",
+        "fallback": "none; the pool is inoperable if the PoolManager is paused, which is outside this model's control"
+      }
+    ],
+    "offchain": []
+  },
+  "operations": {
+    "keeper": {
+      "required": false,
+      "actor": null,
+      "action": null,
+      "cadence": null,
+      "authentication": null,
+      "funding": null,
+      "failure": null,
+      "fallback": null
+    },
+    "oracle": {
+      "required": false,
+      "actor": null,
+      "action": null,
+      "cadence": null,
+      "authentication": null,
+      "funding": null,
+      "failure": null,
+      "fallback": null
+    },
+    "monitoring": "Off-chain indexers watch LvrSurcharge, ProgrammableFeeCollected and ProgrammableFeeClaimed to reconstruct fee accrual and the surcharge schedule per pool.",
+    "incidentResponse": "The hook is immutable with no pause, upgrade, or admin. The only privileged action is the owner-only fee claim. A discovered issue would be handled by the Programmable launch flow declining to route new launches to the model."
+  },
+  "integration": {
+    "routerGeneration": "V2_2_0",
+    "routerDependencyId": null,
+    "permit2DependencyId": null,
+    "stateViewDependencyId": null,
+    "quoterDependencyId": null,
+    "sdkDependencies": [],
+    "routerActionProfile": {
+      "routerVersionExplicit": null,
+      "universalRouterCommand": null,
+      "v4Actions": [],
+      "settlementMode": null,
+      "permit2Mode": null,
+      "finalSwapDeltaValidated": null
+    },
+    "appSourcePaths": [],
+    "integrationTestPaths": [],
+    "quoteExecutionParity": "A quoter must apply the same dynamic LP fee and 10 bps return delta to match execution.",
+    "swapModes": [
+      "zeroForOne-exactInput",
+      "zeroForOne-exactOutput",
+      "oneForZero-exactInput",
+      "oneForZero-exactOutput"
+    ],
+    "partialFills": "After-quadrant fee basis is the executed quote delta, so a partial fill is never over-charged.",
+    "slippage": "The hook adds only a bounded additive fee; trader slippage is the ordinary v4 swap plus a disclosed <=10 bps.",
+    "deadline": "Deadlines are handled by the router/caller; the hook imposes none.",
+    "permit2": "Not used by the hook; standard router Permit2 flows are unaffected.",
+    "stateReads": "The hook reads only its own storage and block.number; no external state reads.",
+    "events": [
+      "PoolBound",
+      "LvrSurcharge",
+      "ProgrammableFeeCollected",
+      "ProgrammableFeeClaimed"
+    ],
+    "routingAndDiscoverability": {
+      "routingMode": "programmable-app",
+      "allowlistTriggers": {
+        "usesDeltaFlag": true,
+        "addressStartsWith91": false,
+        "targetsMajorPair": false,
+        "permissionedPool": false
+      },
+      "uniswapRoutingStatus": "required-not-submitted",
+      "hookRegistryStatus": "not-submitted",
+      "customHookDataRequired": false,
+      "standardRouterCompatible": false,
+      "permissionedRouting": {
+        "required": false,
+        "minimumRouterGeneration": null,
+        "adapterCurrencyUsed": false,
+        "allowedWrapperBindings": null,
+        "positionManagerBinding": null,
+        "routingAllowlistRequiredPerChain": true
+      },
+      "sourcePaths": [
+        "src/Undertow.sol"
+      ],
+      "testPaths": [
+        "test/LvrRecaptureHook.t.sol"
+      ]
+    },
+    "dataReconstruction": {
+      "mode": "events-only",
+      "eventCoverage": null,
+      "cursor": null,
+      "startBlockPolicy": null,
+      "finalityDepth": null,
+      "reorgPolicy": null,
+      "backfillPolicy": null,
+      "checkpointPolicy": null,
+      "freshnessTargetSeconds": null,
+      "staleAfterSeconds": null,
+      "freshnessMeasurement": null,
+      "reconciliation": null,
+      "reserveReconstruction": {
+        "used": null,
+        "balanceSources": [],
+        "liabilitySources": [],
+        "attributionKeys": [],
+        "solvencyEquation": null,
+        "poolLiquidityTreatment": null,
+        "donationAndDustPolicy": null,
+        "reconciliation": null
+      },
+      "sourcePaths": [],
+      "testPaths": []
+    },
+    "platformHandoff": {
+      "intended": true,
+      "websiteRegistryPath": null,
+      "uiSourcePaths": [],
+      "apiSourcePaths": [],
+      "indexerSourcePaths": [],
+      "testPaths": [],
+      "reviewStatus": "pending-maintainer-review",
+      "maintainerReviewRequired": true,
+      "selfApproval": false,
+      "availabilityClaimed": false,
+      "handoffNotes": "Prototype for maintainer review. Not accepted, audited, routed, deployed, or available. The autonomous atomic launch graph (launch.json) is a planned follow-up; this revision binds the hook source, tests, invariants, and a live mainnet-fork rehearsal against the real PoolManager."
+    }
+  },
+  "projectSurfaces": [
+    {
+      "id": "canonical-pool-model",
+      "kind": "onchain-contract",
+      "name": "Canonical pool model",
+      "summary": "The canonical launch token, PoolKey and optional hook behavior reviewed as one onchain project boundary.",
+      "executionBoundary": "onchain",
+      "capabilityIds": [
+        "canonical-pool-state"
+      ],
+      "authorityRefs": [],
+      "valueFlowRefs": [],
+      "assetRefs": [],
+      "sourcePaths": [],
+      "testPaths": [],
+      "schemaPaths": [],
+      "evidencePaths": [],
+      "exposure": {
+        "movesValue": false,
+        "usesSignatures": false,
+        "makesExternalCalls": false,
+        "holdsCustody": false,
+        "handlesPii": false,
+        "usesGeolocation": false,
+        "usesSecrets": false
+      },
+      "profiles": {
+        "authority": {
+          "status": "applicable",
+          "summary": "PoolManager callback authentication and the declared launch authorities bound in this submission govern the exact onchain boundary.",
+          "controls": [
+            "Authenticate every hook callback through the exact PoolManager and declared pool-admission rule."
+          ],
+          "evidenceRefs": []
+        },
+        "valueFlow": {
+          "status": "not-applicable",
+          "summary": "This starter surface declares no additional value movement beyond standard PoolManager settlement until a capability changes that boundary.",
+          "controls": [],
+          "evidenceRefs": []
+        },
+        "sourceOfTruth": {
+          "status": "applicable",
+          "summary": "Confirmed PoolManager and contract state for the exact chain and PoolId is the authoritative source of truth.",
+          "controls": [
+            "Key every state read and emitted event by the exact chain, model revision and PoolId."
+          ],
+          "evidenceRefs": []
+        },
+        "signaturesReplay": {
+          "status": "not-applicable",
+          "summary": "The starter surface consumes no model-specific signed message or signed offchain payload.",
+          "controls": [],
+          "evidenceRefs": []
+        },
+        "externalCalls": {
+          "status": "not-applicable",
+          "summary": "The starter surface makes no model-specific external call beyond authenticated protocol execution.",
+          "controls": [],
+          "evidenceRefs": []
+        },
+        "custody": {
+          "status": "not-applicable",
+          "summary": "The starter surface retains no token, liquidity position, PoolManager claim or beneficiary balance.",
+          "controls": [],
+          "evidenceRefs": []
+        },
+        "piiGeolocation": {
+          "status": "not-applicable",
+          "summary": "The onchain starter surface collects no private identity data or precise user geolocation.",
+          "controls": [],
+          "evidenceRefs": []
+        },
+        "secretBoundary": {
+          "status": "not-applicable",
+          "summary": "The onchain starter surface assumes no secret can remain confidential in contract state or calldata.",
+          "controls": [],
+          "evidenceRefs": []
+        },
+        "sourceTestSchema": {
+          "status": "applicable",
+          "summary": "The implementation manifest binds the exact source, tests, compiler input and specification reviewed for this boundary.",
+          "controls": [
+            "Bind prototype source and tests to implementation paths and include every imported executable byte in the review target."
+          ],
+          "evidenceRefs": []
+        },
+        "failureRecovery": {
+          "status": "applicable",
+          "summary": "An invalid callback or state transition reverts atomically and does not block the separately declared user exit path.",
+          "controls": [
+            "Test dependency failure, callback revert and recovery without partial settlement or trapped user funds."
+          ],
+          "evidenceRefs": []
+        }
+      },
+      "signedDataSource": {
+        "used": false,
+        "signerAuthorityRefs": [],
+        "signatureScheme": null,
+        "payloadSchemaPath": null,
+        "freshnessRule": null,
+        "replayProtection": null,
+        "onchainVerifierSurfaceId": null
+      },
+      "onchainOracleVerifier": {
+        "used": false,
+        "verifiedSourceSurfaceIds": [],
+        "verificationRule": null,
+        "freshnessRule": null,
+        "replayProtection": null,
+        "failureRule": null
+      }
+    }
+  ],
+  "projectCapabilities": [
+    {
+      "id": "canonical-pool-state",
+      "kind": "state-observation",
+      "summary": "Read and update only the declared canonical PoolId state without adding value custody or an offchain trust dependency.",
+      "surfaceIds": [
+        "canonical-pool-model"
+      ],
+      "securityTriggers": {
+        "authority": true,
+        "valueFlow": false,
+        "sourceOfTruth": true,
+        "signaturesReplay": false,
+        "externalCalls": false,
+        "custody": false,
+        "piiGeolocation": false,
+        "secretBoundary": false,
+        "sourceTestSchema": true,
+        "failureRecovery": true
+      },
+      "requiredProfiles": [
+        "authority",
+        "failure-recovery",
+        "source-of-truth",
+        "source-test-schema"
+      ]
+    }
+  ],
+  "capabilities": {
+    "externalCalls": {
+      "used": false,
+      "targets": [],
+      "callSites": [],
+      "reentrancyPolicy": null,
+      "stateDriftPolicy": null,
+      "returnValuePolicy": null,
+      "failureAtomicity": null
+    },
+    "permissionedAsset": {
+      "used": false,
+      "officialUniswapPermissionedPool": null,
+      "issuer": null,
+      "jurisdiction": null,
+      "legalDocuments": [],
+      "underlyingClaim": null,
+      "custodian": null,
+      "adapter": null,
+      "hooks": null,
+      "positionManager": null,
+      "swapEligibility": null,
+      "liquidityEligibility": null,
+      "positionTransferability": null,
+      "pauseFreezeUnwind": null,
+      "redemption": null,
+      "routingLimitations": null
+    },
+    "oracle": {
+      "used": false,
+      "source": null,
+      "value": null,
+      "deployment": null,
+      "runtimeHash": null,
+      "decimals": null,
+      "heartbeatSeconds": null,
+      "maxAgeSeconds": null,
+      "observationType": null,
+      "windowSeconds": null,
+      "minimumAnswer": null,
+      "maximumAnswer": null,
+      "maximumDeviation": null,
+      "roundChecks": null,
+      "manipulationResistance": null,
+      "governance": null,
+      "fallback": null,
+      "maxFallbackAgeSeconds": null,
+      "failureRule": null
+    },
+    "keeper": {
+      "used": false,
+      "executionMode": null,
+      "minIntervalSeconds": null,
+      "maxDelaySeconds": null,
+      "permissionlessFallbackAfterSeconds": null,
+      "idempotencyKey": null,
+      "duplicateBehavior": null,
+      "lastProcessedState": null,
+      "boundedWork": null,
+      "maxItems": null,
+      "retryPolicy": null,
+      "zeroWorkBehavior": null,
+      "fundingSource": null,
+      "minimumGasRunway": null,
+      "alertThreshold": null,
+      "maximumGas": null,
+      "failureImpact": null,
+      "userExitIndependent": null,
+      "poolBinding": null,
+      "slippage": null,
+      "deadline": null,
+      "mevPolicy": null
+    },
+    "proof": {
+      "used": false,
+      "proofSystem": null,
+      "circuitRevision": null,
+      "verifyingKeyHash": null,
+      "verifierAddress": null,
+      "runtimeHash": null,
+      "setupType": null,
+      "setupProvenance": null,
+      "publicInputs": [],
+      "domainBindings": {
+        "chainId": null,
+        "verifyingContract": null,
+        "modelVersion": null,
+        "pool": null,
+        "action": null,
+        "actorOrRecipient": null,
+        "amountBounds": null,
+        "epochOrDeadline": null
+      },
+      "replayMode": null,
+      "nullifierScope": null,
+      "nullifierDerivation": null,
+      "nullifierStorage": null,
+      "atomicSpentCheck": null,
+      "resetPolicy": null,
+      "maximumProofBytes": null,
+      "maximumVerificationGas": null,
+      "verifierAuthority": null,
+      "failureRule": null,
+      "privacyClaim": null,
+      "metadataLeakage": null
+    },
+    "crossChain": {
+      "used": false,
+      "bridgeDependencyId": null,
+      "source": {
+        "network": {
+          "namespace": null,
+          "reference": null
+        },
+        "domain": null,
+        "authenticatedSender": {
+          "encoding": null,
+          "value": null,
+          "canonicalizationRule": null
+        }
+      },
+      "destination": {
+        "chainId": null,
+        "domain": null,
+        "receiver": null,
+        "receiverDependencyId": null,
+        "authenticatedBridgeCaller": null
+      },
+      "message": {
+        "identifierDerivation": null,
+        "nonceDerivation": null,
+        "nonceScope": null,
+        "customNonceRule": null,
+        "payloadHashRule": null,
+        "idempotencyKeyRule": null,
+        "idempotencyStorage": null,
+        "atomicConsumption": null,
+        "duplicateBehavior": null,
+        "domainBindings": {
+          "bridgeDependencyId": null,
+          "sourceNetwork": null,
+          "sourceDomain": null,
+          "sourceSender": null,
+          "destinationChainId": null,
+          "destinationDomain": null,
+          "receiver": null,
+          "receiverDependencyId": null,
+          "modelId": null,
+          "poolId": null,
+          "action": null,
+          "payloadHash": null,
+          "timestampOrExpiry": null,
+          "messageId": null,
+          "nonce": null
+        }
+      },
+      "finality": {
+        "mode": null,
+        "minimumSourceConfirmations": null,
+        "challengePeriodSeconds": null,
+        "attestationRule": null,
+        "reorgBehavior": null,
+        "customFinalityRule": null
+      },
+      "ordering": {
+        "mode": null,
+        "sequenceKey": null,
+        "outOfOrderBehavior": null,
+        "maximumPendingMessages": null,
+        "queueOverflowBehavior": null,
+        "pendingMessageExpirySeconds": null,
+        "cleanupRule": null,
+        "releaseRule": null
+      },
+      "staleness": {
+        "timestampSource": null,
+        "customTimestampRule": null,
+        "maximumMessageAgeSeconds": null,
+        "maximumFutureSkewSeconds": null,
+        "staleMessageBehavior": null
+      },
+      "failureBehavior": null,
+      "failureRule": null,
+      "fallback": {
+        "mode": null,
+        "authority": null,
+        "rule": null
+      },
+      "quarantine": {
+        "used": null,
+        "storageRule": null,
+        "maximumEntries": null,
+        "entryExpirySeconds": null,
+        "overflowBehavior": null,
+        "cleanupRule": null,
+        "releaseMode": null,
+        "releaseRule": null,
+        "releaseAuthority": null,
+        "atomicRelease": null
+      }
+    },
+    "externalLiquidity": {
+      "used": false,
+      "custody": null,
+      "ownership": null,
+      "shareAccounting": null,
+      "solvencyEquation": null,
+      "lossAllocation": null,
+      "donationPolicy": null,
+      "exitPath": null,
+      "dependencyFailure": null
+    },
+    "asyncSwap": {
+      "used": false,
+      "supportedExactness": null,
+      "custody": null,
+      "fillRule": null,
+      "partialFillRule": null,
+      "cancellation": null,
+      "expiry": null,
+      "refund": null,
+      "queueBound": null,
+      "liveness": null,
+      "failureRule": null
+    },
+    "customCurve": {
+      "used": false,
+      "invariant": null,
+      "domain": null,
+      "rounding": null,
+      "monotonicity": null,
+      "discontinuities": null,
+      "inverse": null,
+      "differentialReference": null,
+      "failureRule": null
+    }
+  },
+  "capabilityExtensions": [],
+  "tokenBehaviorExtensions": [],
+  "security": {
+    "usesTxOrigin": false,
+    "userControlledDelegatecall": false,
+    "arbitraryExecution": false,
+    "unboundedCriticalLoop": false,
+    "ignoredCallResults": false,
+    "hiddenControls": false,
+    "assumesOnchainSecrecy": false,
+    "bypassesHookAddressValidation": false,
+    "signatureScheme": {
+      "used": false,
+      "standard": null,
+      "nonce": null,
+      "deadline": null,
+      "chain": null,
+      "verifyingContract": null,
+      "action": null,
+      "parameters": null,
+      "erc1271": null
+    }
+  },
+  "implementation": {
+    "sourcePaths": [
+      "src/Undertow.sol"
+    ],
+    "testPaths": [
+      "test/LvrRecaptureHook.t.sol",
+      "test/LvrInvariant.t.sol",
+      "test/LvrEconomics.t.sol",
+      "test/LvrFork.t.sol"
+    ],
+    "compilerBuildInfoPaths": [],
+    "specificationPath": "submissions/undertow/PROPOSAL.md",
+    "testEvidencePath": null,
+    "dependencyLockPath": null,
+    "gateStatusPath": null,
+    "reviewTargetPath": null,
+    "runtimeAssetManifestPath": null
+  },
+  "risk": {
+    "dimensions": {
+      "complexity": 3,
+      "customMath": 1,
+      "externalDependencies": 1,
+      "externalLiquidity": 0,
+      "valueAtRisk": 2,
+      "teamMaturity": 2,
+      "upgradeability": 0,
+      "autonomy": 2,
+      "priceImpact": 1
+    },
+    "rationales": {
+      "complexity": "One hook, two swap callbacks, no custom curve; return-delta fee accounting mirrors an audited pattern.",
+      "customMath": "No AMM curve is replaced; only bounded fee arithmetic (mulDivRoundingUp) and a linear surcharge.",
+      "externalDependencies": "The PoolManager is the sole dependency; no oracle, keeper, or external protocol.",
+      "externalLiquidity": "No external liquidity, vault, or rehypothecation.",
+      "valueAtRisk": "The hook holds only the owner-claimable 10 bps liability as ERC-6909 claims, always fully backed (proven by invariant); it never custodies LP or trader principal.",
+      "teamMaturity": "New independent builder; no prior deployed model. Independent audit not yet done.",
+      "upgradeability": "Immutable: no proxy, admin, pause, or upgrade path.",
+      "autonomy": "The LP fee auto-adjusts from on-chain staleness with hard bounds [3000, 53000]; no autonomous value movement beyond the disclosed fee.",
+      "priceImpact": "The hook adds only a bounded additive fee; it does not change the AMM curve."
+    },
+    "declaredTotal": 12,
+    "declaredTier": "high",
+    "featureTriggers": [
+      "dynamic-lp-fee",
+      "per-swap-fee-override",
+      "beforeSwapReturnDelta",
+      "afterSwapReturnDelta",
+      "time-or-block-condition"
+    ]
+  },
+  "disclosures": [
+    "This submission is not accepted, audited, routed, deployed, or available. Local checks and a mainnet-fork rehearsal are builder evidence, not live collection or maintainer approval.",
+    "An arbitrageur may split one large realigning trade so only the first material tranche is surcharged; the dust-threshold guard blocks sub-threshold priming. This residual is disclosed and bounded.",
+    "Independent security audit is not yet performed."
+  ],
+  "unresolved": []
+}

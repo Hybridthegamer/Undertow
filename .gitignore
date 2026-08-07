@@ -1,0 +1,8 @@
+out/
+cache/
+broadcast/
+.env
+*.log
+node_modules/
+# Pinned dependencies are restored by script/bootstrap.sh from dependency-lock.json.
+lib/
