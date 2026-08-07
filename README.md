@@ -1,6 +1,13 @@
 # Undertow
 
+[![ci](https://github.com/Hybridthegamer/Undertow/actions/workflows/ci.yml/badge.svg)](https://github.com/Hybridthegamer/Undertow/actions/workflows/ci.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+
 **An LVR-recapture launch hook for Uniswap v4 — a submission to the [Programmable](https://github.com/0xprogrammable/programmable) Custom Hook Hookathon.**
+
+Built through the mandatory Programmable v4 Builder skill (`gh skill install 0xprogrammable/programmable
+programmable-v4-hook-builder`) — see [`submissions/undertow/SKILL_FLOW.md`](submissions/undertow/SKILL_FLOW.md). Every
+test claim below is reproducible via CI (the badge above) and committed, hashed evidence artifacts.
 
 Undertow's canonical pool recaptures **loss-versus-rebalancing (LVR)** for its own liquidity providers — oracle-free and
 keeper-free — while enforcing the mandatory Programmable **10 bps** volume fee non-bypassably on the same pool.

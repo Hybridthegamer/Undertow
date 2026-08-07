@@ -1,0 +1,188 @@
+# forge test evidence — Undertow
+# toolchain: forge Version: 1.7.1
+# date (UTC): 2026-08-07T20:37:50Z
+# command: MAINNET_RPC_URL=<public-node> forge test -vv
+
+No files changed, compilation skipped
+
+Ran 1 test for test/LvrEconomics.t.sol:LvrEconomicsTest
+[PASS] test_stalerPool_paysLpsMore() (gas: 399919)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 48.05ms (2.36ms CPU time)
+
+Ran 15 tests for test/LvrRecaptureHook.t.sol:UndertowTest
+[PASS] testFuzz_platformFee_exactRate(uint128) (runs: 1000, μ: 493723, ~: 588155)
+Logs:
+  Bound result 23501570196873663997
+
+[PASS] test_bindsCanonicalPool() (gas: 16103)
+[PASS] test_claim_onlyOwner() (gas: 582046)
+[PASS] test_claim_rejectsZeroDestination() (gas: 582422)
+[PASS] test_claim_transfersClaimsToDestination() (gas: 585582)
+[PASS] test_dustPriming_doesNotResetClock() (gas: 210024)
+[PASS] test_materialSwap_resetsClock() (gas: 584392)
+[PASS] test_platformFee_oneForZero_exactIn() (gas: 582728)
+[PASS] test_platformFee_oneForZero_exactOut() (gas: 573431)
+[PASS] test_platformFee_zeroForOne_exactIn() (gas: 590327)
+[PASS] test_platformFee_zeroForOne_exactOut() (gas: 579601)
+[PASS] test_revertsOnStaticFee() (gas: 49925)
+[PASS] test_surcharge_capped() (gas: 584104)
+[PASS] test_surcharge_scalesWithStaleBlocks() (gas: 583367)
+[PASS] test_surcharge_zeroSameBlock() (gas: 896667)
+Suite result: ok. 15 passed; 0 failed; 0 skipped; finished in 2.14s (2.13s CPU time)
+
+Ran 1 test for test/LvrFork.t.sol:LvrForkTest
+[PASS] test_fork_platformFeeAndSolvency() (gas: 222363)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 27.33s (1.54s CPU time)
+
+Ran 2 tests for test/LvrInvariant.t.sol:LvrInvariantTest
+[PASS] invariant_clockNeverInFuture() (runs: 256, calls: 16384, reverts: 0)
+
+╭-------------+----------+-------+---------+----------╮
+| Contract    | Selector | Calls | Reverts | Discards |
++=====================================================+
+| SwapHandler | swap     | 16384 | 0       | 0        |
+╰-------------+----------+-------+---------+----------╯
+
+Logs:
+  Bound result 4318642226742334402
+  Bound result 4999999000000001461
+  Bound result 50000000000000000
+  Bound result 1507964027487590217
+  Bound result 31569217209201399
+  Bound result 4999999000000050001
+  Bound result 1000000000000000
+  Bound result 3145349999870771879
+  Bound result 2503269603261972651
+  Bound result 4999999000000010001
+  Bound result 4496145730248477479
+  Bound result 4999999999999999998
+  Bound result 1876791290500031989
+  Bound result 2495866599374651556
+  Bound result 4999999000000005386
+  Bound result 1760531129169849
+  Bound result 40957395393292855
+  Bound result 1354318758406747324
+  Bound result 1935043088801419565
+  Bound result 4999999000000000041
+  Bound result 1768501906637144637
+  Bound result 3608694459837157708
+  Bound result 4999999000001000001
+  Bound result 4520102355131316408
+  Bound result 3957901171480967151
+  Bound result 4999999000000053001
+  Bound result 1069907696244680865
+  Bound result 39999799999960
+  Bound result 4999999000000000352
+  Bound result 4101136767351363800
+  Bound result 4999999000000000015
+  Bound result 1000000000000000000
+  Bound result 2082035299668136
+  Bound result 2294434388552614592
+  Bound result 2290802976506768561
+  Bound result 1000000000001
+  Bound result 4661980525439031691
+  Bound result 4999999000000000005
+  Bound result 1219047837760853862
+  Bound result 4999999000000016508
+  Bound result 408868114129811751
+  Bound result 4999999000000000507
+  Bound result 1263579148965738668
+  Bound result 3735241156881609848
+  Bound result 4395160774827965609
+  Bound result 4999999999999999997
+  Bound result 3528555837927198887
+  Bound result 1000000000002
+  Bound result 4999999999999999999
+  Bound result 4999999000000018532
+  Bound result 4999999000000006324
+  Bound result 4999999000000016569
+  Bound result 4629325060190216032
+  Bound result 511308854957959292
+  Bound result 1000000000000
+  Bound result 25885841868131
+  Bound result 4999999000000000005
+  Bound result 1656061735304306452
+  Bound result 4999999000000008524
+  Bound result 4999999000000011722
+  Bound result 4999999000498781359
+  Bound result 491540741933978117
+  Bound result 4999999000000018828
+  Bound result 1000000000002
+
+[PASS] invariant_platformLiabilityFullyBacked() (runs: 256, calls: 16384, reverts: 0)
+
+╭-------------+----------+-------+---------+----------╮
+| Contract    | Selector | Calls | Reverts | Discards |
++=====================================================+
+| SwapHandler | swap     | 16384 | 0       | 0        |
+╰-------------+----------+-------+---------+----------╯
+
+Logs:
+  Bound result 4318642226742334402
+  Bound result 4999999000000001461
+  Bound result 50000000000000000
+  Bound result 1507964027487590217
+  Bound result 31569217209201399
+  Bound result 4999999000000050001
+  Bound result 1000000000000000
+  Bound result 3145349999870771879
+  Bound result 2503269603261972651
+  Bound result 4999999000000010001
+  Bound result 4496145730248477479
+  Bound result 4999999999999999998
+  Bound result 1876791290500031989
+  Bound result 2495866599374651556
+  Bound result 4999999000000005386
+  Bound result 1760531129169849
+  Bound result 4794334045438586187
+  Bound result 1354318758406747324
+  Bound result 1935043088801419565
+  Bound result 4999999000000000041
+  Bound result 1768501906637144637
+  Bound result 3608694459837157708
+  Bound result 4999999000001000001
+  Bound result 4520102355131316408
+  Bound result 3957901171480967151
+  Bound result 4999999000000053001
+  Bound result 1069907696244680865
+  Bound result 39999799999960
+  Bound result 4999999000000000352
+  Bound result 4101136767351363800
+  Bound result 4999999000000000015
+  Bound result 1000000000000000000
+  Bound result 2082035299668136
+  Bound result 2294434388552614592
+  Bound result 2290802976506768561
+  Bound result 1000000000001
+  Bound result 4661980525439031691
+  Bound result 4999999000000000005
+  Bound result 1219047837760853862
+  Bound result 4999999000000016508
+  Bound result 408868114129811751
+  Bound result 4999999000000000507
+  Bound result 1263579148965738668
+  Bound result 3735241156881609848
+  Bound result 4395160774827965609
+  Bound result 4999999999999999997
+  Bound result 3528555837927198887
+  Bound result 1000000000002
+  Bound result 4999999999999999999
+  Bound result 4999999000000018532
+  Bound result 4999999000000006289
+  Bound result 4999999000000016569
+  Bound result 4629325060190216032
+  Bound result 511308854957959292
+  Bound result 1000000000000
+  Bound result 25885841868131
+  Bound result 4999999000000000005
+  Bound result 1656061735304306452
+  Bound result 4999999000000001475
+  Bound result 4999999000000002502
+  Bound result 4999999000498781359
+  Bound result 491540741933978117
+  Bound result 4999999000000018844
+  Bound result 1000000000002
+
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 61.74s (121.69s CPU time)
+
+Ran 4 test suites in 67.48s (91.26s CPU time): 19 tests passed, 0 failed, 0 skipped (19 total tests)

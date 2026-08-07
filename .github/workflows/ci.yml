@@ -1,0 +1,54 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: forge test + slither
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Restore pinned dependencies
+        run: ./script/bootstrap.sh
+
+      - name: Show versions
+        run: forge --version
+
+      - name: Build (with sizes)
+        run: forge build --sizes
+
+      - name: Test (unit + fuzz + invariants)
+        run: forge test -vv --no-match-contract LvrForkTest
+
+      - name: Mainnet-fork rehearsal (real PoolManager)
+        continue-on-error: true
+        env:
+          MAINNET_RPC_URL: https://ethereum-rpc.publicnode.com
+        run: forge test -vv --match-contract LvrForkTest
+
+      - name: Slither (model-owned analysis)
+        continue-on-error: true
+        run: |
+          python3 -m pip install --quiet slither-analyzer
+          slither src/Undertow.sol \
+            --solc-remaps "@uniswap/v4-core/=lib/v4-core/ @uniswap/v4-periphery/=lib/v4-periphery/ @openzeppelin/uniswap-hooks/=lib/uniswap-hooks/ @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/ forge-std/=lib/forge-std/src/ solmate/=lib/v4-core/lib/solmate/" \
+            --solc-args "--optimize --optimizer-runs 1000 --evm-version cancun" \
+            2>&1 | tee slither-ci.txt
+
+      - name: Upload evidence artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: undertow-evidence
+          path: |
+            slither-ci.txt

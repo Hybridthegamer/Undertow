@@ -96,8 +96,21 @@ stateful invariants at 16,384 calls each with zero reverts (the 10 bps liability
 an economic proof that a staler pool pays its LPs strictly more for the same trade; and a **mainnet-fork rehearsal
 against the live PoolManager `0x000000000004444c5dc75cB358380D2e3dE08A90`**.
 
+## Provenance & verifiability
+
+Undertow was produced through the **mandatory Programmable v4 Builder skill** — `gh skill install 0xprogrammable/programmable
+programmable-v4-hook-builder`, then `doctor → scaffold → check → package`. The skill's public-intake gate returns
+`intakeValidated: true`, and its deterministic `compatibility-report.json` (plus the skill-scaffolded `submission.json`)
+**is** the required machine-readable documentation of fees, recipients, value flows and authorities. The full transcript
+is in [`SKILL_FLOW.md`](SKILL_FLOW.md). Every test and analysis claim is reproducible: CI (`.github/workflows/ci.yml`,
+badge on the README) runs the suite and Slither on every push, and the captured outputs are committed and hashed under
+[`evidence/`](evidence/). The build window and authorship are visible in the repository's public commit history and CI
+run timestamps.
+
 ## Status and open items
 
-This is a builder proposal + prototype for maintainer review. It is **not** accepted, audited, routed, deployed, or
-available. The autonomous atomic launch graph (`launch.json`) and independent audit are planned follow-ups; this
-revision binds the hook source, tests, invariants, and the live fork rehearsal.
+Like every submission at intake, this is **not yet** maintainer-accepted, audited, routed, deployed, or available —
+those are separate downstream states the program owns, not steps a builder can self-certify, and the skill *requires*
+this disclaimer on every application. What *is* complete: the skill pipeline (package `intakeValidated: true`), the fully
+implemented hook, and its test/invariant/fork/CI evidence. The remaining follow-ups are the autonomous atomic launch
+graph (`launch.json`) and an independent security audit.

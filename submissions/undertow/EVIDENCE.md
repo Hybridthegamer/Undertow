@@ -24,6 +24,19 @@ All evidence is reproducible from the pinned public source revision of this repo
 - Mainnet fork: `test_fork_platformFeeAndSolvency` passes against PoolManager
   `0x000000000004444c5dc75cB358380D2e3dE08A90` at recent head (block ≈ 25,705,061).
 
+### Verifiable artifacts (committed, hashed)
+Independently checkable — do not take the numbers on trust:
+- **Continuous integration:** `.github/workflows/ci.yml` runs `forge test` + Slither on every push. The run logs and the
+  passing/failing status are public on the repository's **Actions** tab; the README carries the live CI badge.
+- **Captured `forge test -vv` output:** [`evidence/forge-test.txt`](evidence/forge-test.txt)
+  — `sha256:16f1894845ded4d6be1f9e4e6f4adc25b558bbe6e7fdbffa2a4a6015827ba986`
+- **Captured Slither output:** [`evidence/slither.txt`](evidence/slither.txt)
+  — `sha256:69d10e88be3f51869b474a9c22c19aa0a14820c47e4746cc6d13119fd9f2e40c`
+- **Skill-flow transcript & the skill-generated documentation artifact:** [`SKILL_FLOW.md`](SKILL_FLOW.md) and
+  [`compatibility-report.json`](compatibility-report.json).
+- **Build window / provenance:** the repository's public commit history and CI run timestamps show the work was built
+  inside the submission window; `git log` and the Actions tab are the record.
+
 ## Static analysis (Slither)
 - Slither 0.x on `src/Undertow.sol`: **no model-owned findings of consequence.** All detector hits are in the pinned
   dependencies (`lib/`) — solc-version pragmas, too-many-digits, naming — except:
