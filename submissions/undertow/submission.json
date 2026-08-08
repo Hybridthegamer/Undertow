@@ -253,7 +253,8 @@
       "testPaths": [
         "test/LvrRecaptureHook.t.sol",
         "test/LvrInvariant.t.sol",
-        "test/LvrFork.t.sol"
+        "test/LvrFork.t.sol",
+        "test/UndertowSafety.t.sol"
       ]
     }
   },
@@ -1193,7 +1194,8 @@
       "test/LvrRecaptureHook.t.sol",
       "test/LvrInvariant.t.sol",
       "test/LvrEconomics.t.sol",
-      "test/LvrFork.t.sol"
+      "test/LvrFork.t.sol",
+      "test/UndertowSafety.t.sol"
     ],
     "compilerBuildInfoPaths": [],
     "specificationPath": "submissions/undertow/PROPOSAL.md",

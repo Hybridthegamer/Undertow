@@ -5,7 +5,18 @@ matching the Programmable-tested dependency baseline. Run with `forge test`; the
 
 ## Actual results (this revision)
 
-**19 tests pass, 0 failed, 0 skipped**, across 4 suites.
+**23 tests pass, 0 failed, 0 skipped**, across 5 suites.
+
+### Named safety cases — `test/UndertowSafety.t.sol` (4 pass)
+- `test_reentrancy_callbacksRejectNonPoolManager` — every hook callback is gated to the immutable
+  PoolManager; a non-manager caller (an attacker mid-reentry) reverts. The hook calls no untrusted code
+  (the LVR rebate is a native LP fee, not a pot pay-out), so no reentrant path exists.
+- `test_zeroLiquidity_noPhantomFeeNoCorruption` — with no in-range liquidity an executed-basis swap accrues
+  no phantom fee, the hook holds nothing (solvent), and its binding/clock state is uncorrupted.
+- `test_selfArbDrain_hookNeverDrainable` — 24 adversarial swaps: the accrued liability is always exactly
+  backed by held claims and only ever grows; the attacker can never drain it or claim it.
+- `test_noDoubleFee_chargedExactlyOnce` — the 10 bps is charged exactly once per swap (one quadrant, never
+  both), equal to a single `ceil(0.10%)` of quote volume.
 
 ### Unit + fuzz — `test/LvrRecaptureHook.t.sol` (15 pass)
 - `test_revertsOnStaticFee` — non-dynamic-fee pool is rejected at initialize.
